@@ -25,6 +25,9 @@ namespace Diacarb.ConsoleClient
                 IDietaryResult dietaryResult = client.GetDietaryResultAsync(input).Result;
 
                 Console.WriteLine(dietaryResult);
+
+
+
                 
             }
         }

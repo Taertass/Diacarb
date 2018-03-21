@@ -7,41 +7,6 @@ using System.Threading.Tasks;
 
 namespace Diacarb.Core
 {
-    public interface IDietaryResult
-    {
-        double Carbohydrates { get; set; }
-        string FoodName { get; set; }
-        double ServingQuantity { get; set; }
-        string ServingUnit { get; set; }
-    }
-    public class DietaryResult : IDietaryResult
-    {
-        public string FoodName { get; set; }
-
-        public double ServingQuantity { get; set; }
-
-        public string ServingUnit { get; set; }
-
-        public double Carbohydrates { get; set; }
-
-        public override string ToString()
-        {
-            StringBuilder sb = new StringBuilder();
-
-            sb.AppendLine($"{nameof(FoodName)}: {FoodName}");
-            sb.AppendLine($"{nameof(ServingQuantity)}: {ServingQuantity}");
-            sb.AppendLine($"{nameof(ServingUnit)}: {ServingUnit}");
-            sb.AppendLine($"{nameof(Carbohydrates)}: {Carbohydrates}");
-
-            return sb.ToString();
-        }
-    }
-
-    public interface IDiacarbClient
-    {
-        Task<IDietaryResult> GetDietaryResultAsync(string query);
-    }
-
     public class DiacarbClient : IDiacarbClient
     {
         private const string myApiId = "fcaa3e2b";
