@@ -5,6 +5,8 @@ namespace Diacarb.Core
 {
     public interface IDiacarbClient
     {
+        IDietaryResult GetDietaryResult(string quantity, string unit, string foodName);
+        Task<IDietaryResult> GetDietaryResultAsync(string quantity, string unit, string foodName);
         Task<IDietaryResult> GetDietaryResultAsync(string query);
     }
 }

@@ -17,10 +17,13 @@ namespace Diacarb.Core
         {
             StringBuilder sb = new StringBuilder();
 
+            double roundedCarbs = Math.Round(Carbohydrates, 0);
+            string carbText = roundedCarbs == 1 ? "carb" : "carbs";
+
             sb.Append($"{ServingQuantity} ");
             sb.Append($"{ServingUnit} ");
             sb.Append($"of {FoodName} ");
-            sb.Append($"are {Carbohydrates} carbs.");
+            sb.Append($"are {roundedCarbs} {carbText}.");
             sb.AppendLine();
 
             return sb.ToString();

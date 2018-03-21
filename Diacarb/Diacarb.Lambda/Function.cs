@@ -1,7 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Alexa.NET.Request;
 using Alexa.NET.Request.Type;
 using Alexa.NET.Response;
@@ -15,90 +12,99 @@ namespace Diacarb.Lambda
 {
     public class Function
     {
-
-        /// <summary>
-        /// A simple function that takes a string and does a ToUpper
-        /// </summary>
-        /// <param name="input"></param>
-        /// <param name="context"></param>
-        /// <returns></returns>        
-        //public string FunctionHandler(string input, ILambdaContext context)
-        //{
-        //    return "<speak>I works dude</speak>";
-        //}
-
         public SkillResponse FunctionHandler(SkillRequest input, ILambdaContext context)
         {
-            if (input.Request is IntentRequest intentRequest)
+            string textResult = "";
+            bool shouldEndSession = false;
+
+            if (input.Request is LaunchRequest launchRequest)
             {
+                textResult = "Try asking something like. How many carbs in 10 grams of strawberries";
+            }
+            else if (input.Request is IntentRequest intentRequest)
+            {
+
                 if (intentRequest?.Intent?.Name == "GetDiataryResultIntent")
                 {
-                    string textResult = "";
-
                     try
                     {
-                        Slot servingUnit = intentRequest.Intent.Slots["servingUnit"];
-                        Slot unit = intentRequest.Intent.Slots["unit"];
-                        Slot food = intentRequest.Intent.Slots["food"];
-
-                        string queryText = $"{servingUnit.Value} {unit.Value} of {food.Value}";
-                        context.Logger.Log(queryText);
-
                         IDiacarbClient client = new DiacarbClient();
-                        Task<IDietaryResult> getDietaryResultTask = client.GetDietaryResultAsync(queryText);
-                        IDietaryResult dietaryResult = getDietaryResultTask.Result;
+
+                        Slot servingUnit = null;
+                        if (intentRequest.Intent.Slots.ContainsKey("servingUnit"))
+                            servingUnit = intentRequest.Intent.Slots["servingUnit"];
+
+                        Slot unit = null;
+                        if (intentRequest.Intent.Slots.ContainsKey("unit"))
+                            unit = intentRequest.Intent.Slots["unit"];
+
+                        Slot food = null;
+                        if (intentRequest.Intent.Slots.ContainsKey("food"))
+                            food = intentRequest.Intent.Slots["food"];
+
+                        string servingUnitText = servingUnit?.Value;
+                        string foodText = food?.Value;
+                        string unitText = unit?.Value;
+
+                        IDietaryResult dietaryResult = client.GetDietaryResult(servingUnitText, unitText, foodText);
                         textResult = dietaryResult.ToString();
+                    }
+                    catch(ArgumentNullException ex)
+                    {
+                        if(ex.ParamName.ToLower() == "quantity")
+                            textResult = "Please specify your quantity.";
+                        else if (ex.ParamName.ToLower() == "unit")
+                            textResult = "Please specify your quantity.";
+                        else if (ex.ParamName.ToLower() == "foodname")
+                            textResult = "Please specify your food.";
                     }
                     catch (Exception ex)
                     {
                         context.Logger.Log(ex.ToString());
-                        textResult = "Oops something unexpected happened";
+                        textResult = "Oops something unexpected happened. Please try again.";
                     }
 
-                    return new SkillResponse()
-                    {
-                        Version = "1.0",
-                        Response = new ResponseBody()
-                        {
-                            ShouldEndSession = false,
-                            OutputSpeech = new PlainTextOutputSpeech()
-                            {
-                                Text = textResult
-                            }
-                        }
-                    };
+                    shouldEndSession = false;
+                }
+                else if (intentRequest?.Intent?.Name == "AMAZON.CancelIntent")
+                {
+                    shouldEndSession = true;
+                    textResult = "Goodbye!";
+                }
+                else if (intentRequest?.Intent?.Name == "AMAZON.StopIntent")
+                {
+                    shouldEndSession = true;
+                    textResult = "Goodbye!";
+                }
+                else if (intentRequest?.Intent?.Name == "AMAZON.HelpIntent")
+                {
+                    shouldEndSession = false;
+                    textResult = "Try asking something like. How many carbs in 10 grams of strawberries";
                 }
                 else
                 {
-                    return new SkillResponse()
-                    {
-                        Version = "1.0",
-                        Response = new ResponseBody()
-                        {
-                            ShouldEndSession = false,
-                            OutputSpeech = new PlainTextOutputSpeech()
-                            {
-                                Text = "I could not understand you. Try asking something like. How many carbs in 10 grams of strawberries"
-                            }
-                        }
-                    };
+                    shouldEndSession = false;
+                    textResult = "I could not understand you. Try asking something like. How many carbs in 10 grams of strawberries";
                 }
             }
             else
             {
-                return new SkillResponse()
-                {
-                    Version = "1.0",
-                    Response = new ResponseBody()
-                    {
-                        ShouldEndSession = false,
-                        OutputSpeech = new PlainTextOutputSpeech()
-                        {
-                            Text = "Try asking something like. How many carbs in 10 grams of strawberries"
-                        }
-                    }
-                };
+                shouldEndSession = false;
+                textResult = "I could not understand you. Try asking something like. How many carbs in 10 grams of strawberries";
             }
+
+            return new SkillResponse()
+            {
+                Version = "1.0",
+                Response = new ResponseBody()
+                {
+                    ShouldEndSession = shouldEndSession,
+                    OutputSpeech = new PlainTextOutputSpeech()
+                    {
+                        Text = textResult
+                    }
+                }
+            };
         }
     }
 }

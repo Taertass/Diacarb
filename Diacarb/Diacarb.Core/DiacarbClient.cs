@@ -14,53 +14,46 @@ namespace Diacarb.Core
 
         public async Task<IDietaryResult> GetDietaryResultAsync(string query)
         {
+            if (string.IsNullOrWhiteSpace(query))
+                throw new ArgumentNullException(nameof(query));
+
             IDietaryResult dietaryResult = null;
 
-            var payload = new
+            string stringPayload = await Task.Run(() => JsonConvert.SerializeObject(new
             {
                 query = query,
                 timezone = "US/Eastern"
-            };
-
-
-            var stringPayload = await Task.Run(() => JsonConvert.SerializeObject(payload));
+            }));
 
             // Wrap our JSON inside a StringContent which then can be used by the HttpClient class
-            var httpContent = new StringContent(stringPayload, Encoding.UTF8, "application/json");
+            StringContent httpContent = new StringContent(stringPayload, Encoding.UTF8, "application/json");
 
-            using (var httpClient = new HttpClient())
+            using (HttpClient httpClient = new HttpClient())
             {
-                var request = new HttpRequestMessage()
+                HttpRequestMessage request = new HttpRequestMessage()
                 {
                     RequestUri = new Uri("https://trackapi.nutritionix.com/v2/natural/nutrients"),
                     Method = HttpMethod.Post,
                     Content = new StringContent(stringPayload, Encoding.UTF8, "application/json")
                 };
 
-                
-                //request.Headers.Add("Content-Type", "application/json");
+                //Add the app id and key
                 request.Headers.Add("x-app-id", myApiId);
                 request.Headers.Add("x-app-key", myApiKey);
 
-                var response = await httpClient.SendAsync(request);
-                //var jsonTask = response.Content;
-
-
+                HttpResponseMessage response = await httpClient.SendAsync(request);
+                
                 if (response.Content != null)
                 {
-                    var responseContent = await response.Content.ReadAsStringAsync();
+                    string responseContent = await response.Content.ReadAsStringAsync();
 
                     JObject jsonResult = JObject.Parse(responseContent);
-
-
                     string message = (string)jsonResult["message"];
 
                     if (!string.IsNullOrWhiteSpace(message))
                         throw new Exception(message);
 
-
                     JArray foods = jsonResult["foods"] as JArray;
-
                     JToken foodResult = foods[0];
 
                     string foodName = (string)foodResult["food_name"];
@@ -68,7 +61,6 @@ namespace Diacarb.Core
                     string servingUnit = (string)foodResult["serving_unit"];
                     double totalCarbohydrate = (double)foodResult["nf_total_carbohydrate"];
                     double dietaryFiber = (double)foodResult["nf_dietary_fiber"];
-
 
                     dietaryResult = new DietaryResult()
                     {
@@ -81,6 +73,37 @@ namespace Diacarb.Core
             }
 
             return dietaryResult;
+        }
+        
+        public Task<IDietaryResult> GetDietaryResultAsync(string quantity, string unit, string foodName)
+        {
+            if (string.IsNullOrWhiteSpace(quantity))
+                throw new ArgumentNullException(nameof(quantity));
+            if (string.IsNullOrWhiteSpace(unit))
+                throw new ArgumentNullException(nameof(unit));
+            if (string.IsNullOrWhiteSpace(foodName))
+                throw new ArgumentNullException(nameof(foodName));
+
+            //Convert unit from deciliters to milliliters
+            if (unit.ToLower().Contains("deciliter"))
+            {
+                double parsedUnit = 0;
+                if (double.TryParse(quantity, out parsedUnit))
+                {
+                    parsedUnit = parsedUnit * 100;
+
+                    quantity = parsedUnit.ToString();
+                    unit = "milliliters";
+                }
+            }
+
+            string queryText = $"{quantity} {unit} of {foodName}";
+            return GetDietaryResultAsync(queryText);
+        }
+
+        public IDietaryResult GetDietaryResult(string quantity, string unit, string foodName)
+        {
+            return GetDietaryResultAsync(quantity, unit, foodName).Result;
         }
     }
 }
